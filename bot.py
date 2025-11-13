@@ -4,10 +4,8 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# Load .env file
 load_dotenv()
 
-# Get keys from environment
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -26,9 +24,7 @@ async def movie_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         plot = response["Plot"]
         poster = response["Poster"]
 
-        keyboard = [
-            [InlineKeyboardButton("📥 Download", url="https://example.com/download-link")]
-        ]
+        keyboard = [[InlineKeyboardButton("📥 Download", url="https://example.com/download-link")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_photo(
@@ -44,5 +40,6 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, movie_search))
 
-print("🤖 Bot running...")
-app.run_polling()
+if __name__ == "__main__":
+    print("🤖 Bot running...")
+    app.run_polling()
