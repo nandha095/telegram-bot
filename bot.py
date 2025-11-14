@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import requests
 import os
 from dotenv import load_dotenv
@@ -11,55 +11,41 @@ OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
-# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🎬 *Welcome!*\n\n"
-        "Send me any *movie name*, and I'll fetch complete details for you!",
-        parse_mode="Markdown"
+        "🎬 Welcome! Send me a movie name to search."
     )
 
 
-# Movie search handler
 async def movie_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     movie_name = update.message.text.strip()
+    encoded = urllib.parse.quote(movie_name)
 
-    if not movie_name:
-        await update.message.reply_text("⚠️ Please type a movie name.")
-        return
-
-    encoded_name = urllib.parse.quote(movie_name)
-    url = f"http://www.omdbapi.com/?t={encoded_name}&apikey={OMDB_API_KEY}"
+    url = f"http://www.omdbapi.com/?t={encoded}&apikey={OMDB_API_KEY}"
 
     try:
-        response = requests.get(url).json()
-    except Exception as e:
-        await update.message.reply_text("❌ Error connecting to OMDB API. Try again later.")
+        data = requests.get(url).json()
+    except:
+        await update.message.reply_text("❌ API Error. Try again later.")
         return
 
-    if response.get("Response") != "True":
-        await update.message.reply_text("❌ Movie not found. Please try another title.")
+    if data.get("Response") != "True":
+        await update.message.reply_text("❌ Movie not found.")
         return
 
-    title = response.get("Title", "N/A")
-    year = response.get("Year", "N/A")
-    rating = response.get("imdbRating", "N/A")
-    plot = response.get("Plot", "N/A")
-    poster = response.get("Poster", "N/A")
+    title = data.get("Title", "N/A")
+    year = data.get("Year", "N/A")
+    rating = data.get("imdbRating", "N/A")
+    plot = data.get("Plot", "N/A")
+    poster = data.get("Poster", "N/A")
 
-    # Download button (You can replace with your real link)
-    keyboard = [
-        [InlineKeyboardButton("📥 Download", url="https://example.com/download-link")]
+    caption = f"🎬 *{title} ({year})*\n⭐ IMDb: {rating}\n\n📝 {plot}"
+
+    buttons = [
+        [InlineKeyboardButton("📥 Download", url="https://example.com/download")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(buttons)
 
-    caption = (
-        f"🎬 *{title}* ({year})\n"
-        f"⭐ **IMDb:** {rating}\n\n"
-        f"📝 *Storyline:*\n{plot}"
-    )
-
-    # If poster is available and not "N/A"
     if poster != "N/A":
         await update.message.reply_photo(
             photo=poster,
@@ -75,8 +61,8 @@ async def movie_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-# Run bot
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+app = Application.builder().token(BOT_TOKEN).build()
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, movie_search))
 
